@@ -12,10 +12,11 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class JsonHelper
 {
-    private static Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     public static CustomScales scalesFromJsonFile(File file)
     {
@@ -75,23 +76,22 @@ public class JsonHelper
     public static List<String> getKeyList(JsonObject jsonObjectIn)
     {
         //List<String> keyList = new ArrayList<>(jsonObjectIn.keySet()); //possible with Gson 2.8.1
-        List<String> keyList = new ArrayList<>();
-
-        Map<String, Object> map = new LinkedHashMap<>();
-        map = (Map<String, Object>) GSON.fromJson(jsonObjectIn, map.getClass());
-        keyList = new ArrayList<>(map.keySet());
+        List<String> keyList = jsonObjectIn.entrySet().stream().map(Map.Entry::getKey).distinct().collect(Collectors.toList());
+        List<String> toRemove = null;
 
         //test whether keys are representative of a known class to prevent error when checking
         //if a gui is an instance of a class
         for (String s : keyList) {
             try {
-                Class temp = Class.forName(s);
+                Class.forName(s, false, JsonHelper.class.getClassLoader());
             } catch(Exception e) {
                 ScalingGUIs.logger.error("Unknown class '" + s + "'. Removing from check list. Will be left in json assets.scalingguis.file.", e);
-                keyList.remove(s);
+                if (toRemove == null) toRemove = new ArrayList<>();
+                toRemove.add(s);
             }
         }
 
+        if (toRemove != null) keyList.removeAll(toRemove);
         return keyList;
     }
 
