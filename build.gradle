@@ -63,12 +63,18 @@ processResources {
     rename '(.+_at.cfg)', 'META-INF/$1' // Make sure Access Transformer files are in META-INF folder
 }
 
+// Adds Access Transformer files to tasks
+for (File at : sourceSets.getByName("main").resources.files) {
+    if (at.name.toLowerCase().endsWith("_at.cfg")) {
+        tasks.deobfuscateMergedJarToSrg.accessTransformerFiles.from(at)
+        tasks.srgifyBinpatchedJar.accessTransformerFiles.from(at)
+    }
+}
+
 jar {
     manifest {
         attributes 'FMLAT': 'scalingguis_at.cfg'
     }
-    // Add all embedded dependencies into the jar
-    from(provider { configurations.embed.collect { it.isDirectory() ? it : zipTree(it) } })
 }
 
 idea {
